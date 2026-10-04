@@ -6,12 +6,12 @@ public static class PoissonSampler
     public static void SimpleSampler(int[] sampleSize, float radius)
     {
         Random random = new Random();
-        DoPoissonSampler(sampleSize, radius, (int)random.NextInt64());
+        DoPoissonSampler(sampleSize, radius, (int)random.NextInt64(), 30);
     }
 
     public static void SimpleSampler(int[] sampleSize, float radius, int seed)
     {
-        DoPoissonSampler(sampleSize, radius, seed);
+        DoPoissonSampler(sampleSize, radius, seed, 30);
     }
 
     private static void DoPoissonSampler(int[] sampleSize, float radius, int seed, int attempts)
@@ -41,16 +41,60 @@ public static class PoissonSampler
 
         Queue<float[]> frontier = new Queue<float[]>();
         frontier.Append(startPosition);
-
+        
         while (frontier.Count > 0)
         {
             float[] point = frontier.Dequeue();
 
-            for(int i = 0; i < attempts; i++)
+            for (int attempt = 0; attempt < attempts; attempt++)
             {
-                
+                float r = radius * (1 + random.NextSingle());
+                float[] offset = new float[sampleSize.Length];
+                float[] angles = new float[sampleSize.Length - 1];
+
+                for(int i = 0; i < angles.Length - 1; i++)
+                {
+                    angles[i] = (float)(random.NextSingle() * Math.PI);
+                }
+                angles[angles.Length - 1] = (float)(random.NextSingle() * Math.Tau);
+
+                for (int i = 0; i < sampleSize.Length; i++)
+                {
+                    point[i] = r;
+                    for(int k = 0; k <= Math.Min(i, sampleSize.Length - 2); k++)
+                    {
+                        offset[i] *= (float)(k == i ? Math.Cos(angles[i]) : Math.Sin(angles[i]));
+                    }
+                }
+
+                void checkAdjacents(float[] point, float[] offset, float[][] packedGrid, bool[] packedPresenceGrid, int[] sampleSize)
+                {
+                    float[] newPoint = addVector(point, offset);
+                    int[] gridPos = floorVec(newPoint);
+                    int packedPos = getPackedCoordinate(gridPos, sampleSize);
+                    if(!packedPresenceGrid[packedPos])
+                    {
+                        
+                    }
+                }
             }
         }
+    }
+
+    private static float[] addVector(float[] a, float[] b)
+    {
+        for (int i = 0; i < a.Length; i++) { a[i] += b[i]; }
+        return a;
+    }
+
+    private static int[] floorVec(float[] a)
+    {
+        int[] ints = new int[a.Length];
+        for (int i = 0; i < a.Length; i++)
+        {
+            ints[i] = (int)Math.Floor(a[i]);
+        }
+        return ints;
     }
 
     private static float squaredEuclideanDistance(float[] a, float[] b)
