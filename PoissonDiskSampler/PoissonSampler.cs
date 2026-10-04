@@ -2,8 +2,6 @@
 
 public static class PoissonSampler
 {
-
-
     // sampleSize designates a NxNx... sized box to fill with points
     public static void SimpleSampler(int[] sampleSize, float radius)
     {
@@ -16,7 +14,7 @@ public static class PoissonSampler
         DoPoissonSampler(sampleSize, radius, seed);
     }
 
-    private static void DoPoissonSampler(int[] sampleSize, float radius, int seed)
+    private static void DoPoissonSampler(int[] sampleSize, float radius, int seed, int attempts)
     {
         //checking accelerated with a grid
         //gridSize caclulated from the maximum diagonal size of a gridsquare
@@ -30,7 +28,7 @@ public static class PoissonSampler
         
         Random random = new Random();
         
-        //flat packed n dimensional grid
+        //flat packed dimensions dimensional grid
         float[][] packedGrid = new float[packedSize][];
         bool[] packedPresenceGrid = new bool[packedSize];
         
@@ -41,8 +39,18 @@ public static class PoissonSampler
         packedGrid[startIndex] = startPosition;
         packedPresenceGrid[startIndex] = true;
 
+        Queue<float[]> frontier = new Queue<float[]>();
+        frontier.Append(startPosition);
 
+        while (frontier.Count > 0)
+        {
+            float[] point = frontier.Dequeue();
 
+            for(int i = 0; i < attempts; i++)
+            {
+                
+            }
+        }
     }
 
     private static float squaredEuclideanDistance(float[] a, float[] b)
@@ -67,19 +75,32 @@ public static class PoissonSampler
         return packedCoordinate;
     }
 
-    //get the 5x5x... grid square's packed index around the given coordinate using only addition and subtraction to reduce the insane amount of calculation this sampler needs
-    private static int[][] getLocalProximity(int[] coordinate, int[] gridSize)
+    private static int[] getLocalProximity(int[] coordinate, int[] gridSize)
     {
         int[][] localPositions = new int[(int)Math.Pow(5, gridSize.Length)][];
-        int packedCoordinate = getPackedCoordinate(coordinate, gridSize);
 
-        for (int i = 0; i < localPositions.Length; i++)
+        int dimensions = gridSize.Length;
+        int[] point = new int[dimensions];
+
+        IEnumerable<int> Loop(int i)
         {
-            localPositions[i] = new int[gridSize.Length];
-            for (int k = 0; k < gridSize.Length; k++)
+            if (i == dimensions)
             {
-                
+                int[] result = new int[dimensions];
+
+                for (int j = 0; j < dimensions; j++) result[j] = coordinate[j] + point[j];
+
+                yield return getPackedCoordinate(result, gridSize);
+                yield break;
+            }
+
+            for (int x = -2; x <= 2; x++)
+            {
+                point[i] = x;
+                foreach (var p in Loop(i + 1)) yield return p;
             }
         }
+
+        return Loop(0).ToArray();
     }
 }

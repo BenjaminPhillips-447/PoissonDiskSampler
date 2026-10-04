@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PoissonDIskSampler")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+feaab9c8b59d4aaa2e90985f743606f7f198880d")]
 [assembly: System.Reflection.AssemblyProductAttribute("PoissonDIskSampler")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PoissonDIskSampler")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
