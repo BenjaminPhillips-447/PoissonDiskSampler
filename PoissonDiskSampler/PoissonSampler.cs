@@ -3,15 +3,15 @@
 public static class PoissonSampler
 {
     // sampleSize designates a NxNx... sized box to fill with points
-    public static void SimpleSampler(int[] sampleSize, float radius)
+    public static void SimpleSampler(int[] sampleSize, float radius, int attemptsPerPoint)
     {
         Random random = new Random();
-        DoPoissonSampler(sampleSize, radius, (int)random.NextInt64(), 30);
+        DoPoissonSampler(sampleSize, radius, (int)random.NextInt64(), attemptsPerPoint);
     }
 
-    public static void SimpleSampler(int[] sampleSize, float radius, int seed)
+    public static void SimpleSampler(int[] sampleSize, float radius, int seed, int attemptsPerPoint)
     {
-        DoPoissonSampler(sampleSize, radius, seed, 30);
+        DoPoissonSampler(sampleSize, radius, seed, attemptsPerPoint);
     }
 
     private static void DoPoissonSampler(int[] sampleSize, float radius, int seed, int attempts)
@@ -26,21 +26,23 @@ public static class PoissonSampler
         for (int i = 0; i < sampleSize.Length; i++) { gridSize[i] = (int)Math.Ceiling(sampleSize[i] / gridSquareSize); packedSize += gridSize[i];}
         
         
-        Random random = new Random();
+        Random random = new Random(seed);
         
         //flat packed dimensions dimensional grid
         float[][] packedGrid = new float[packedSize][];
         bool[] packedPresenceGrid = new bool[packedSize];
+        List<float[]> points = new List<float[]>();
         
         float[] startPosition = new float[gridSize.Length];
-        int[] gridPos = new int[gridSize.Length];
-        for (int i = 0; i < startPosition.Length; i++) { startPosition[i] = random.NextSingle() * gridSize[i]; gridPos[i] = (int)Math.Floor(startPosition[i]); }
+        for (int i = 0; i < startPosition.Length; i++) { startPosition[i] = random.NextSingle() * gridSize[i]; }
+        int[] gridPos = floorVec(startPosition);
         int startIndex = getPackedCoordinate(gridPos, gridSize);
         packedGrid[startIndex] = startPosition;
         packedPresenceGrid[startIndex] = true;
 
         Queue<float[]> frontier = new Queue<float[]>();
         frontier.Append(startPosition);
+        points.Add(startPosition);
         
         while (frontier.Count > 0)
         {
@@ -67,18 +69,38 @@ public static class PoissonSampler
                     }
                 }
 
-                void checkAdjacents(float[] point, float[] offset, float[][] packedGrid, bool[] packedPresenceGrid, int[] sampleSize)
+                float[] newPoint = addVector(point, offset);
+
+                bool checkValidity(float[] checkPoint)
                 {
-                    float[] newPoint = addVector(point, offset);
-                    int[] gridPos = floorVec(newPoint);
+                    int[] gridPos = floorVec(checkPoint);
                     int packedPos = getPackedCoordinate(gridPos, sampleSize);
                     if(!packedPresenceGrid[packedPos])
                     {
-                        
+                        int[] adjacentSlots = getLocalProximity(gridPos, sampleSize);
+                        foreach(int slot in adjacentSlots)
+                        {
+                            if(packedPresenceGrid[slot])
+                            {
+                                if (squaredEuclideanDistance(checkPoint, packedGrid[slot]) < radius * radius) return false;
+                            }
+                        }
                     }
+                    return true;
+                }
+
+                if (checkValidity(newPoint))
+                {
+                    frontier.Append(newPoint);
+                    points.Add(newPoint);
+                    int newIndex = getPackedCoordinate(floorVec(newPoint), gridSize);
+                    packedGrid[newIndex] = startPosition;
+                    packedPresenceGrid[newIndex] = true;
                 }
             }
         }
+
+
     }
 
     private static float[] addVector(float[] a, float[] b)
@@ -122,29 +144,20 @@ public static class PoissonSampler
     private static int[] getLocalProximity(int[] coordinate, int[] gridSize)
     {
         int[][] localPositions = new int[(int)Math.Pow(5, gridSize.Length)][];
-
-        int dimensions = gridSize.Length;
-        int[] point = new int[dimensions];
-
-        IEnumerable<int> Loop(int i)
+        for (int i = 0; i < localPositions.Length; i++)
         {
-            if (i == dimensions)
+            localPositions[i] = new int[gridSize.Length];
+            for (int d = 0; d < gridSize.Length; d++)
             {
-                int[] result = new int[dimensions];
-
-                for (int j = 0; j < dimensions; j++) result[j] = coordinate[j] + point[j];
-
-                yield return getPackedCoordinate(result, gridSize);
-                yield break;
-            }
-
-            for (int x = -2; x <= 2; x++)
-            {
-                point[i] = x;
-                foreach (var p in Loop(i + 1)) yield return p;
+                localPositions[i][d] = coordinate[d] + (i / (int)Math.Pow(d, 5) % 5);
+                if(localPositions[i][d] >= gridSize[d] || localPositions[i][d] < 0) localPositions[i] = [-1];
             }
         }
-
-        return Loop(0).ToArray();
+        List<int> valid = new List<int>();
+        for (int i = 0; i < localPositions.Length; i++)
+        {
+            if(localPositions[i][0] != -1) valid.Add(getPackedCoordinate(localPositions[i], gridSize)); 
+        }
+        return valid.ToArray();
     }
 }
