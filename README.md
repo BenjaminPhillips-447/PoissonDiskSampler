@@ -1,0 +1,1 @@
+The script PoissonDiskSampler is used by giving a boundary, e.g. 30x30x40 and using that as the sample size, the radius being the minimum separation between two points, and the attempts per point can be used to set maximum attempts the sampler checks to find new points. The float[][] is an array of vectors where each vector is as long as the amount of dimensions used.
